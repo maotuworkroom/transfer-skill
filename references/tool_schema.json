@@ -1,0 +1,88 @@
+{
+  "type": "function",
+  "function": {
+    "name": "query_transit_route",
+    "description": "查询日本两点间的公共交通换乘方案（使用 Yahoo! 乗換案内）。支持指定出发/到达地点名称和坐标、日期时间、排序方式等。返回多条路线的详细换乘信息（乘车时间、换乘次数、票价、途经车站/线路等）。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "from_name": {
+          "type": "string",
+          "description": "出发地名称（如车站名\"京都\"、地名\"東京タワー\"）。注意：不能与 to_name 完全相同"
+        },
+        "to_name": {
+          "type": "string",
+          "description": "目的地名称（如车站名\"東京\"、地名\"浅草寺\"）。注意：不能与 from_name 完全相同"
+        },
+        "from_lat": {
+          "type": "number",
+          "description": "出发地纬度（可选，用于精确定位）"
+        },
+        "from_lng": {
+          "type": "number",
+          "description": "出发地经度（可选，用于精确定位）"
+        },
+        "to_lat": {
+          "type": "number",
+          "description": "目的地纬度（可选，用于精确定位）"
+        },
+        "to_lng": {
+          "type": "number",
+          "description": "目的地经度（可选，用于精确定位）"
+        },
+        "year": {
+          "type": "integer",
+          "description": "出发年份（如 2026），默认当前年份"
+        },
+        "month": {
+          "type": "integer",
+          "description": "出发月份（1-12），默认当前月份"
+        },
+        "day": {
+          "type": "integer",
+          "description": "出发日期（1-31），默认当前日期"
+        },
+        "hour": {
+          "type": "integer",
+          "description": "出发小时（0-23），默认当前小时"
+        },
+        "minute": {
+          "type": "integer",
+          "description": "出发分钟（0-59），默认当前分钟"
+        },
+        "is_departure": {
+          "type": "boolean",
+          "description": "true=按出发时间检索（默认），false=按到达时间检索"
+        },
+        "ticket_type": {
+          "type": "string",
+          "enum": ["ic", "normal"],
+          "description": "票价类型：ic=IC交通卡（默认），normal=现金原价"
+        },
+        "sort_type": {
+          "type": "integer",
+          "enum": [0, 1, 2],
+          "description": "排序方式：0=时间最短（默认），1=换乘最少，2=票价最便宜"
+        },
+        "walk_speed": {
+          "type": "integer",
+          "enum": [1, 2, 3, 4, 5],
+          "description": "步行速度权重（1-5），数值越大越减少步行距离，默认3"
+        },
+        "shinkansen": {
+          "type": "boolean",
+          "description": "是否包含新干线，默认 true"
+        },
+        "limited_express": {
+          "type": "boolean",
+          "description": "是否包含特急列车，默认 true"
+        },
+        "max_routes": {
+          "type": "integer",
+          "description": "最多返回路线数，默认 5"
+        }
+      },
+      "required": ["from_name", "to_name"]
+    }
+  }
+}
