@@ -35,11 +35,16 @@ python3 "<本目录>/scripts/yahoo_transit.py" --from 東京 --to 大阪 \
 | `--time` | 时间 `HH:MM` | 当前时间 |
 | `--arrival` | 按到达时间检索 | 按出发时间 |
 | `--ticket` | `ic`（IC卡价）/ `normal`（现金原价） | `ic` |
+| `--seat` | `free`（自由席優先）/ `reserved`（指定席優先），影响特急/新干线路线票价 | `free` |
+| `--use-pass` | 利用パス・回数券（通票/回数券/定期区间）；仅对票券适用的区间改变票价 | 不启用 |
+| `--via` | 経由地名称，路线必须经过该地点（如 `--via 新宿`） | 不指定 |
 | `--sort` | `time`（最快）/ `transfers`（换乘最少）/ `fare`（最便宜） | `time` |
 | `--walk-speed` | 1-5，越大越少步行 | 3 |
 | `--no-shinkansen` / `--no-limited-express` | 排除新干线 / 特急 | 默认都包含 |
 | `--max-routes` | 最多返回路线数（1-8） | 5 |
 | `--json` / `--url-only` | 输出格式控制 | 可读文本 |
+
+**关于通票（パス・回数券）与定期券**：`--use-pass` 是 Yahoo 官方的「パス・回数券を利用する」选项，但只有在路线覆盖回数券/特定通票适用区间时票价才会变化，普通路线开启后结果不变。通勤定期券的具体金额由 Yahoo 页面 JS 动态加载（静态 HTML 中显示 `-`），本工具无法抓取；需要定期费用时，可把 `url` 给用户在浏览器打开查看各路线的「定期券」标签页。
 
 ## 输出格式
 
@@ -119,6 +124,9 @@ python3 "<本目录>/scripts/yahoo_transit.py" --from 東京 --to 大阪 \
 | `year`,`month`,`day`,`hour`,`minute` | 拼成 `--date YYYY-MM-DD --time HH:MM` |
 | `is_departure=false` | `--arrival` |
 | `ticket_type` | `--ticket` |
+| `seat_type`（free/reserved） | `--seat` |
+| `use_pass=true` | `--use-pass` |
+| `via_name` | `--via` |
 | `sort_type`（0/1/2） | `--sort time/transfers/fare` |
 | `walk_speed` | `--walk-speed` |
 | `shinkansen=false` / `limited_express=false` | `--no-shinkansen` / `--no-limited-express` |

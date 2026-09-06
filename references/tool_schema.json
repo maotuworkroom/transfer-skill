@@ -59,6 +59,19 @@
           "enum": ["ic", "normal"],
           "description": "票价类型：ic=IC交通卡（默认），normal=现金原价"
         },
+        "seat_type": {
+          "type": "string",
+          "enum": ["free", "reserved"],
+          "description": "座席优先：free=自由席優先（默认），reserved=指定席優先（影响特急/新干线路线票价）"
+        },
+        "use_pass": {
+          "type": "boolean",
+          "description": "是否利用パス・回数券（通票/回数券/定期区间），默认 false。仅对票券适用的区间改变票价"
+        },
+        "via_name": {
+          "type": "string",
+          "description": "経由地名称（路线必须经过的地点，可选，如\"新宿\"）"
+        },
         "sort_type": {
           "type": "integer",
           "enum": [0, 1, 2],

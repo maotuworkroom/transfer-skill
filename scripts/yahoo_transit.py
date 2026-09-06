@@ -52,15 +52,21 @@ def build_url(from_name, to_name, from_lat=None, from_lng=None,
               to_lat=None, to_lng=None, dt=None, departure_time=True,
               ticket_type="ic", sort_type=0, walk_speed=3,
               shinkansen=True, limited_express=True, express=True,
-              local_train=True, private_railway=True):
-    """构建 Yahoo!乗換案内 检索 URL（参数顺序与 Dart 版一致）。"""
+              local_train=True, private_railway=True,
+              seat="free", use_pass=False, via_name=""):
+    """构建 Yahoo!乗換案内 检索 URL（参数顺序与 Dart 版一致）。
+
+    seat: "free"=自由席優先(expkind=1), "reserved"=指定席優先(expkind=2)
+    use_pass: True 时 userpass=1（利用パス・回数券/通票）
+    via_name: 経由地名称，路线必须经过该地点
+    """
     dt = dt or datetime.now()
     params = [
         ("from", from_name),
         ("to", to_name),
         ("fromgid", ""),
         ("togid", ""),
-        ("via", ""),
+        ("via", via_name or ""),
         ("viacode", ""),
         ("y", str(dt.year)),
         ("m", "%02d" % dt.month),
@@ -70,8 +76,8 @@ def build_url(from_name, to_name, from_lat=None, from_lng=None,
         ("m2", str(dt.minute % 10)),
         ("type", "1" if departure_time else "4"),
         ("ticket", ticket_type),
-        ("expkind", "1"),
-        ("userpass", "0"),
+        ("expkind", "2" if seat == "reserved" else "1"),
+        ("userpass", "1" if use_pass else "0"),
         ("ws", str(walk_speed)),
         ("s", str(sort_type)),
         ("al", "1"),
@@ -521,12 +527,14 @@ def parse_routes(html, url, max_routes):
 def query(from_name, to_name, from_lat=None, from_lng=None,
           to_lat=None, to_lng=None, dt=None, departure_time=True,
           ticket_type="ic", sort_type=0, walk_speed=3,
-          shinkansen=True, limited_express=True, max_routes=5):
+          shinkansen=True, limited_express=True, max_routes=5,
+          seat="free", use_pass=False, via_name=""):
     """主入口：返回 (routes, url)。异常以 TransitError 抛出。"""
     max_routes = max(1, min(8, max_routes))
     url = build_url(from_name, to_name, from_lat, from_lng, to_lat, to_lng,
                     dt, departure_time, ticket_type, sort_type, walk_speed,
-                    shinkansen, limited_express)
+                    shinkansen, limited_express, seat=seat,
+                    use_pass=use_pass, via_name=via_name)
     try:
         html = fetch_html(url)
     except urllib.error.HTTPError as e:
@@ -556,18 +564,25 @@ class TransitError(Exception):
 
 
 def format_text(from_name, to_name, dt, departure_time, sort_type,
-                ticket_type, routes, url):
+                ticket_type, routes, url, seat="free", use_pass=False,
+                via_name=""):
     """复刻 app 内的纯文本输出格式。"""
     time_part = "%02d:%02d" % (dt.hour, dt.minute)
     date_str = "%d年%02d月%02d日 %s" % (dt.year, dt.month, dt.day, time_part)
     type_label = "出发" if departure_time else "到达"
     ticket_label = "IC" if ticket_type == "ic" else "现金"
 
-    out = ["■ %s → %s" % (from_name, to_name),
-           "  %s%s / %s / %s" % (date_str, type_label,
-                                 SORT_LABELS.get(sort_type, "时间优先"),
-                                 ticket_label),
-           ""]
+    head = "■ %s → %s" % (from_name, to_name)
+    if via_name:
+        head += "（経由 %s）" % via_name
+    conds = [date_str + type_label, SORT_LABELS.get(sort_type, "时间优先"),
+             ticket_label]
+    if seat == "reserved":
+        conds.append("指定席優先")
+    if use_pass:
+        conds.append("パス・回数券")
+
+    out = [head, "  " + " / ".join(conds), ""]
     for r in routes:
         out.append(r.get("summary", ""))
         if r.get("detail"):
@@ -601,6 +616,14 @@ def main(argv=None):
                         help="按到达时间检索（默认按出发时间）")
     parser.add_argument("--ticket", choices=["ic", "normal"], default="ic",
                         help="票价类型：ic=IC卡（默认），normal=现金")
+    parser.add_argument("--seat", choices=["free", "reserved"], default="free",
+                        help="座席优先：free=自由席優先（默认），"
+                             "reserved=指定席優先（特急/新干线路线票价更高）")
+    parser.add_argument("--use-pass", action="store_true",
+                        help="利用パス・回数券（通票/回数券/定期券区间）；"
+                             "仅在票券适用的区间才会改变票价")
+    parser.add_argument("--via", default="",
+                        help="経由地名称，路线必须经过该地点（如 --via 新宿）")
     parser.add_argument("--sort", choices=["time", "transfers", "fare"],
                         default="time",
                         help="排序：time=时间最短（默认），transfers=换乘最少，"
@@ -640,7 +663,8 @@ def main(argv=None):
                         args.from_lng, args.to_lat, args.to_lng, dt,
                         not args.arrival, args.ticket, sort_type,
                         args.walk_speed, not args.no_shinkansen,
-                        not args.no_limited_express))
+                        not args.no_limited_express, seat=args.seat,
+                        use_pass=args.use_pass, via_name=args.via))
         return 0
 
     if args.from_name == args.to_name and (
@@ -659,7 +683,8 @@ def main(argv=None):
             args.from_name, args.to_name, args.from_lat, args.from_lng,
             args.to_lat, args.to_lng, dt, not args.arrival, args.ticket,
             sort_type, args.walk_speed, not args.no_shinkansen,
-            not args.no_limited_express, args.max_routes)
+            not args.no_limited_express, args.max_routes,
+            seat=args.seat, use_pass=args.use_pass, via_name=args.via)
     except TransitError as e:
         if args.json:
             print(json.dumps({"ok": False, "error": e.kind,
@@ -671,7 +696,8 @@ def main(argv=None):
 
     formatted = format_text(args.from_name, args.to_name, dt,
                             not args.arrival, sort_type, args.ticket,
-                            routes, url)
+                            routes, url, seat=args.seat,
+                            use_pass=args.use_pass, via_name=args.via)
 
     if args.json:
         payload = {
@@ -679,9 +705,12 @@ def main(argv=None):
             "query": {
                 "from": args.from_name,
                 "to": args.to_name,
+                "via": args.via,
                 "datetime": dt.strftime("%Y-%m-%d %H:%M"),
                 "type": "departure" if not args.arrival else "arrival",
                 "ticket": args.ticket,
+                "seat": args.seat,
+                "use_pass": args.use_pass,
                 "sort": args.sort,
                 "walk_speed": args.walk_speed,
                 "shinkansen": not args.no_shinkansen,
